@@ -76,18 +76,22 @@ pipeline {
                  }
              }
          }
-
-	  stage('Deploy to Kubernetes') {
-    steps {
-        script {
-            dir('Kubernetes') {
-                withCredentials([usernamePassword(credentialsId: 'aws-credentials',
+     
+	stage('Deploy to Kubernetes') {
+            steps {
+              script {
+                 dir('Kubernetes') {
+                    withCredentials([usernamePassword(credentialsId: 'aws-credentials',
                                                  usernameVariable: 'AWS_ACCESS_KEY_ID',
                                                  passwordVariable: 'AWS_SECRET_ACCESS_KEY')]) {
-                    kubeconfig(credentialsId: 'kubernetes', serverUrl: '') {
-                        sh 'kubectl apply -f deployment.yml'
-                        sh 'kubectl apply -f service.yml'
-                        sh 'kubectl rollout restart deployment.apps/registerapp-deployment'
+                       withEnv(["AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID", 
+                             "AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY", 
+                             "AWS_DEFAULT_REGION=ap-south-1"]) {
+                          kubeconfig(credentialsId: 'kubernetes', serverUrl: '') {
+                            sh 'kubectl apply -f deployment.yml'
+                            sh 'kubectl apply -f service.yml'
+                            sh 'kubectl rollout restart deployment.apps/registerapp-deployment'
+                        }
                     }
                 }
             }
@@ -95,10 +99,6 @@ pipeline {
     }
 }
  
-
-      
-
-	    
 
     }
 
