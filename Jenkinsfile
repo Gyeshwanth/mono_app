@@ -62,12 +62,13 @@ pipeline {
              }
          }
          stage("Trivy Image Scan") {
-             steps {
-                 script {
-	                  sh ('docker run -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image yeshwanthgosi/java-registration-app:latest --no-progress --scanners vuln  --exit-code 0 --severity HIGH,CRITICAL --format table > trivyimage.txt')
-                 }
-             }
-         }
+            steps {
+                script {
+			sh "mkdir -p /tmp/trivy-cache && docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v /tmp/trivy-cache:/root/.cache/ aquasec/trivy image ${IMAGE_NAME}:latest --no-progress --scanners vuln --exit-code 0 --severity HIGH,CRITICAL --format table > trivyimage.txt"
+                  }
+              }
+           }
+
          stage ('Cleanup Artifacts') {
              steps {
                  script {
