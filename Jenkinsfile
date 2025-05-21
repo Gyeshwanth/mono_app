@@ -7,8 +7,8 @@ pipeline {
         SCANNER_HOME = tool 'sonar-scanner'
         APP_NAME = "java-registration-app"
         RELEASE = "1.0.0"
-        DOCKER_USER = "ashfaque9x"
-        DOCKER_PASS = 'dockerhub'
+        DOCKER_USER = "yeshwanthgosi"
+        DOCKER_PASS = 'dockerhub-token'
         IMAGE_NAME = "${DOCKER_USER}" + "/" + "${APP_NAME}"
         IMAGE_TAG = "${RELEASE}-${BUILD_NUMBER}"
 	
@@ -21,7 +21,7 @@ pipeline {
          }
          stage('Checkout from Git') {
             steps {
-                git branch: 'main', url: 'https://ashfaque-9x@bitbucket.org/vtechbox/registration-app.git'
+                git branch: 'main', url: 'https://github.com/Gyeshwanth/mono_app.git'
             }
          }
          stage ('Build Package')  {
@@ -47,52 +47,7 @@ pipeline {
                 }
             }
          }
-         stage ('Artifactory configuration') {
-            steps {
-                rtServer (
-                    id: "jfrog-server",
-                    url: "http://13.201.137.77:8082/artifactory",
-                    credentialsId: "jfrog"
-                )
-
-                rtMavenDeployer (
-                    id: "MAVEN_DEPLOYER",
-                    serverId: "jfrog-server",
-                    releaseRepo: "libs-release-local",
-                    snapshotRepo: "libs-snapshot-local"
-                )
-
-                rtMavenResolver (
-                    id: "MAVEN_RESOLVER",
-                    serverId: "jfrog-server",
-                    releaseRepo: "libs-release",
-                    snapshotRepo: "libs-snapshot"
-                )
-            }
-         }
-         stage ('Deploy Artifacts') {
-            steps {
-                rtMavenRun (
-                    tool: "maven", 
-                    pom: 'webapp/pom.xml',
-                    goals: 'clean install',
-                    deployerId: "MAVEN_DEPLOYER",
-                    resolverId: "MAVEN_RESOLVER"
-                )
-            }
-         }
-         stage ('Publish build info') {
-            steps {
-                rtPublishBuildInfo (
-                    serverId: "jfrog-server"
-             )
-            }
-         }
-         stage('TRIVY FS SCAN') {
-            steps {
-                sh "trivy fs . > trivyfs.txt"
-            }
-         }
+       
          stage("Build & Push Docker Image") {
              steps {
                  script {
@@ -109,7 +64,7 @@ pipeline {
          stage("Trivy Image Scan") {
              steps {
                  script {
-	                  sh ('docker run -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image ashfaque9x/java-registration-app:latest --no-progress --scanners vuln  --exit-code 0 --severity HIGH,CRITICAL --format table > trivyimage.txt')
+	                  sh ('docker run -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image yeshwanthgosi/java-registration-app:latest --no-progress --scanners vuln  --exit-code 0 --severity HIGH,CRITICAL --format table > trivyimage.txt')
                  }
              }
          }
@@ -121,30 +76,8 @@ pipeline {
                  }
              }
          }
-         stage('Deploy to Kubernets'){
-             steps{
-                 script{
-                      dir('Kubernetes') {
-                         kubeconfig(credentialsId: 'kubernetes', serverUrl: '') {
-                         sh 'kubectl apply -f deployment.yml'
-                         sh 'kubectl apply -f service.yml'
-                         sh 'kubectl rollout restart deployment.apps/registerapp-deployment'
-                         }   
-                      }
-                 }
-             }
-         }
+         
         
     }
-    post {
-      always {
-        emailext attachLog: true,
-            subject: "'${currentBuild.result}'",
-            body: "Project: ${env.JOB_NAME}<br/>" +
-                "Build Number: ${env.BUILD_NUMBER}<br/>" +
-                "URL: ${env.BUILD_URL}<br/>",
-            to: 'ashfaque.s510@gmail.com',                              
-            attachmentsPattern: 'trivyfs.txt,trivyimage.txt'
-      }
-    }
+    
 }    
