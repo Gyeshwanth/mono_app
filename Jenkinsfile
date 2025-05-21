@@ -77,19 +77,24 @@ pipeline {
              }
          }
 
-	  stage('Deploy to Kubernets'){
-             steps{
-                 script{
-                      dir('Kubernetes') {
-                         kubeconfig(credentialsId: 'kubernetes', serverUrl: '') {
-                         sh 'kubectl apply -f deployment.yml'
-                         sh 'kubectl apply -f service.yml'
-                         sh 'kubectl rollout restart deployment.apps/registerapp-deployment'
-                         }   
-                      }
-                 }
-             }
-         }    
+	  stage('Deploy to Kubernetes') {
+    steps {
+        script {
+            dir('Kubernetes') {
+                withCredentials([usernamePassword(credentialsId: 'aws-credentials',
+                                                 usernameVariable: 'AWS_ACCESS_KEY_ID',
+                                                 passwordVariable: 'AWS_SECRET_ACCESS_KEY')]) {
+                    kubeconfig(credentialsId: 'kubernetes', serverUrl: '') {
+                        sh 'kubectl apply -f deployment.yml'
+                        sh 'kubectl apply -f service.yml'
+                        sh 'kubectl rollout restart deployment.apps/registerapp-deployment'
+                    }
+                }
+            }
+        }
+    }
+}
+ 
 
       
 
