@@ -89,16 +89,19 @@ pipeline {
                         passwordVariable: 'AWS_SECRET_ACCESS_KEY'
                     )
                 ]) {
-                    withEnv([
-                        "AWS_ACCESS_KEY_ID=${env.AWS_ACCESS_KEY_ID}",
-                        "AWS_SECRET_ACCESS_KEY=${env.AWS_SECRET_ACCESS_KEY}",
-                        "AWS_DEFAULT_REGION=ap-south-1"
-                    ]) {
-                        kubeconfig(credentialsId: 'kubernetes', serverUrl: '') {
-                            sh 'kubectl apply -f deployment.yml'
-                            sh 'kubectl apply -f service.yml'
-                            sh 'kubectl rollout restart deployment.apps/registerapp-deployment'
-                        }
+                    sh '''
+                        mkdir -p ~/.aws
+                        echo "[default]" > ~/.aws/credentials
+                        echo "aws_access_key_id=$AWS_ACCESS_KEY_ID" >> ~/.aws/credentials
+                        echo "aws_secret_access_key=$AWS_SECRET_ACCESS_KEY" >> ~/.aws/credentials
+                        echo "[default]" > ~/.aws/config
+                        echo "region=ap-south-1" >> ~/.aws/config
+                    '''
+                    // Use the kubeconfig uploaded as secret file
+                    withKubeConfig(credentialsId: 'kubernetes') {
+                        sh 'kubectl apply -f deployment.yml'
+                        sh 'kubectl apply -f service.yml'
+                        sh 'kubectl rollout restart deployment.apps/registerapp-deployment'
                     }
                 }
             }
